@@ -12,7 +12,9 @@ class WIEGAND {
 public:
 	WIEGAND();
 	void begin();
+	void begin(bool removeParityBits);
 	void begin(int pinD0, int pinD1);
+	void begin(int pinD0, int pinD1, bool removeParityBits);
 	void begin(int pinD0, int pinIntD0, int pinD1, int pinIntD1);
 	bool available();
 	unsigned long getCode();
