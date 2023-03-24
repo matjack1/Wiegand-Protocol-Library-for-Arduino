@@ -30,6 +30,7 @@ private:
 	static volatile int				_bitCount;	
 	static int				_wiegandType;
 	static unsigned long	_code;
+	static bool				_removeParityBits;
 };
 
 #endif

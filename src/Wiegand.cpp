@@ -14,6 +14,7 @@ volatile unsigned long WIEGAND::_lastWiegand=0;
 unsigned long WIEGAND::_code=0;
 volatile int WIEGAND::_bitCount=0;	
 int WIEGAND::_wiegandType=0;
+bool WIEGAND::_removeParityBits=true;
 
 WIEGAND::WIEGAND()
 {
@@ -58,6 +59,18 @@ void WIEGAND::begin(int pinD0, int pinD1)
 	attachInterrupt(digitalPinToInterrupt(pinD1), ReadD1, FALLING);  // Hardware interrupt - high to low pulse
 }
 
+void WIEGAND::begin(bool removeParityBits)
+{
+	_removeParityBits = removeParityBits;
+	begin();
+}
+
+void WIEGAND::begin(int pinD0, int pinD1, bool removeParityBits)
+{
+	_removeParityBits = removeParityBits;
+	begin(pinD0, pinD1);
+}
+
 INTERRUPT_ATTR void WIEGAND::ReadD0 ()
 {
 	_bitCount++;				// Increament bit count for Interrupt connected to D0
@@ -94,24 +107,31 @@ INTERRUPT_ATTR void WIEGAND::ReadD1()
 
 unsigned long WIEGAND::GetCardId (volatile unsigned long *codehigh, volatile unsigned long *codelow, char bitlength)
 {
-	if (bitlength==26)								// EM tag
-		return (*codelow & 0x1FFFFFE) >>1;
-
-	if (bitlength==24)
-		return (*codelow & 0x7FFFFE) >>1;
-
-	if (bitlength==34)								// Mifare 
+	if (_removeParityBits)
 	{
-		*codehigh = *codehigh & 0x03;				// only need the 2 LSB of the codehigh
-		*codehigh <<= 30;							// shift 2 LSB to MSB		
-		*codelow >>=1;
+		if (bitlength==26)								// EM tag
+			return (*codelow & 0x1FFFFFE) >>1;
+
+		if (bitlength==24)
+			return (*codelow & 0x7FFFFE) >>1;
+
+		if (bitlength==34)								// Mifare 
+		{
+			*codehigh = *codehigh & 0x03;				// only need the 2 LSB of the codehigh
+			*codehigh <<= 30;							// shift 2 LSB to MSB		
+			*codelow >>=1;
+			return *codehigh | *codelow;
+		}
+
+		if (bitlength==32) {
+			return (*codelow & 0x7FFFFFFE ) >>1;
+		}
+	}
+	if (bitlength==34)
+	{
 		return *codehigh | *codelow;
 	}
-
-	if (bitlength==32) {
-		return (*codelow & 0x7FFFFFFE ) >>1;
-	}
-
+	
 	return *codelow;								// EM tag or Mifare without parity bits
 }
 
